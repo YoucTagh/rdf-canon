@@ -1,0 +1,10 @@
+.vscode/
+build/
+dist/
+.pytest_cache/
+rdfcanon.egg-info/
+
+__pycache__/
+
+test/manifest1.jsonld
+test/rdfc10_test
