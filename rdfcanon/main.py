@@ -1,6 +1,6 @@
 import itertools
 import re
-from rdflib import Dataset, Graph, Literal, URIRef
+from rdflib import Dataset, URIRef
 from rdflib.term import Node, BNode
 from sortedcontainers import SortedDict
 from rdfcanon.hash_wrapper import HashWrapper
@@ -17,8 +17,7 @@ class RDFCanon:
     def __init__(
         self,
         hash_algorithm: str,
-        default_context: property,
-        quads: list[tuple[Node, Node, Node, Graph | None]],
+        dataset: Dataset,
         ticker: RDFCanonTimeTicker = None,
     ):
         self.blank_id_to_quad_map: dict[str, list[tuple[Node, Node, Node, Node]]] = (
@@ -29,10 +28,10 @@ class RDFCanon:
         self.blank_id_to_normalized_blank_ids_map: dict[str, str] = dict()
         self.hash_to_blank_id_map: SortedDict[str, set[str]] = SortedDict()
         self.digest = HashWrapper(hash_algorithm)
-        self.default_context = default_context
         self.canon_issuer = IdentifierIssuer("_:c14n")
         self.canon_quads: list[str] = []
-        self.quads = quads
+        self.dataset = dataset
+        self.quads = dataset.quads()
         self.ticker = ticker
 
     def init_blank_id_quad_map(self, graph: Dataset):
@@ -62,7 +61,7 @@ class RDFCanon:
         if isinstance(quad[2], BNode):
             object = self.BLANK_A if str(quad[2]) == blank_id else self.BLANK_Z
 
-        graph = f"<{quad[3]}>" if quad[3] != self.default_context.identifier else ".\n"
+        graph = f"<{quad[3]}>" if quad[3] != self.dataset.default_context.identifier else ".\n"
         if graph != "" and isinstance(quad[3], BNode):
             graph = self.BLANK_A if str(quad[3]) == blank_id else self.BLANK_Z
             graph = f"{graph} .\n"
@@ -168,7 +167,7 @@ class RDFCanon:
                 )
 
             d = Dataset()
-            if graph == self.default_context.identifier:
+            if graph == self.dataset.default_context.identifier:
                 d.add((subject, quad[1], object))
             else:
                 d.add((subject, quad[1], object, graph))
@@ -183,7 +182,7 @@ class RDFCanon:
             output.append(line)
 
         output.sort()
-        print("\n".join(output))
+        # print("\n".join(output))
         self.canon_quads = output
 
     def canonicalize_nquads_escapes(self, nq: str) -> str:
@@ -206,11 +205,11 @@ class RDFCanon:
         # C0 controls + DEL
         return re.sub(r"[\x00-\x1F\x7F]", repl, nq)
 
-    def canonize(self, graph: Dataset) -> str:
+    def canonize(self) -> str:
 
         self.ticker.tick()
 
-        self.init_blank_id_quad_map(graph)
+        self.init_blank_id_quad_map(self.dataset)
         self.init_non_normalized_blank_ids()
         self.issueSimpleIds()
         self.issue_n_degree_ids()

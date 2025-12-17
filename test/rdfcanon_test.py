@@ -31,16 +31,15 @@ def test_one_case(test_case: RDFCanonTestCase):
     try:
         print("Parsing", "rdfcanon/test/" + test_case.input)
 
-        graph = parse_nquads_preserve_bnodes("test/" + test_case.input)
+        dataset = parse_nquads_preserve_bnodes("test/" + test_case.input)
 
         canon: RDFCanon = RDFCanon(
-            test_case.hash_algorithm,
-            graph.default_context,
-            list(graph.quads()),
-            RDFCanonTimeTicker(3000),
+            hash_algorithm=test_case.hash_algorithm,
+            dataset=dataset,
+            ticker=RDFCanonTimeTicker(3000),
         )
 
-        result = canon.canonize(graph)
+        result = canon.canonize()
 
         print("Canonization result:\n", result)
 
