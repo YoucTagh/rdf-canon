@@ -1,4 +1,5 @@
 import itertools
+import re
 from rdflib import Dataset, Graph, Literal, URIRef
 from rdflib.term import Node, BNode
 from sortedcontainers import SortedDict
@@ -96,16 +97,9 @@ class RDFCanon:
             self.hash_to_blank_id_map.clear()
             for blank_id in self.non_normalized_blank_ids:
                 hash: str = self.hash_first_degree(blank_id)
-                # print("-----")
-                # print(f"Blank ID: {blank_id}")
-                # self.print_quads(self.blank_id_to_quad_map[blank_id])
-                # print(f"Hash: {hash}")
-                # print("-----")
                 if hash not in self.hash_to_blank_id_map:
                     self.hash_to_blank_id_map[hash] = set()
                 self.hash_to_blank_id_map[hash].add(blank_id)
-
-        # self.hash_to_blank_id_map = dict(sorted(self.hash_to_blank_id_map.items()))
 
         for hash in list(self.hash_to_blank_id_map.keys()):
             self.ticker.tick()
@@ -153,6 +147,7 @@ class RDFCanon:
             self.blank_id_to_normalized_blank_ids_map[blank_id] = canon_id
 
         sorted_quads: list[tuple[Node, Node, Node, Node]] = list(self.quads)
+        lines: list[str] = []
 
         for quad in sorted_quads:
             subject = quad[0]
@@ -172,47 +167,44 @@ class RDFCanon:
                     self.blank_id_to_normalized_blank_ids_map[str(quad[3])][2:]
                 )
 
-            s_nq = self.term_to_nquad(subject)
-            p_nq = self.term_to_nquad(quad[1])
-            o_nq = self.term_to_nquad(object)
-            g_nq = (
-                self.term_to_nquad(graph)
-                if graph != self.default_context.identifier
-                else ""
-            )
-
+            d = Dataset()
             if graph == self.default_context.identifier:
-                self.canon_quads.append(f"{s_nq} {p_nq} {o_nq} .")
+                d.add((subject, quad[1], object))
             else:
-                self.canon_quads.append(f"{s_nq} {p_nq} {o_nq} {g_nq} .")
+                d.add((subject, quad[1], object, graph))
 
-        self.canon_quads.sort()
+            lines.append(d.serialize(format="nquads"))
 
-    def term_to_nquad(self, t):
-        if isinstance(t, URIRef):
-            return f"<{t}>"
-        if isinstance(t, BNode):
-            return f"_:{t}"  # canonical RDFLib form (c14n0, c14n1, ...)
-        if isinstance(t, Literal):
-            return t.n3()
-        return ""  # default graph → nothing
+        output = []
+        for line in lines:
+            line = self.canonicalize_nquads_escapes(line)
+            line = ''.join(line.rsplit('\\n\\n', 1))
+            line = ' .'.join(line.rsplit('  .', 1))
+            output.append(line)
 
-    def print_quads(self, quads_list):
+        output.sort()
+        print("\n".join(output))
+        self.canon_quads = output
 
-        for quad in quads_list:
-            s_nq = self.term_to_nquad(quad[0])
-            p_nq = self.term_to_nquad(quad[1])
-            o_nq = self.term_to_nquad(quad[2])
-            g_nq = (
-                self.term_to_nquad(quad[3])
-                if quad[3] != self.default_context.identifier
-                else ""
-            )
+    def canonicalize_nquads_escapes(self, nq: str) -> str:
+        def repl(match):
+            ch = match.group(0)
+            code = ord(ch)
 
-            if quad[3] == self.default_context.identifier:
-                print(f"{s_nq} {p_nq} {o_nq} .")
-            else:
-                print(f"{s_nq} {p_nq} {o_nq} {g_nq} .")
+            short = {
+                0x08: r"\b",
+                0x09: r"\t",
+                0x0A: r"\n",
+                0x0C: r"\f",
+                0x0D: r"\r",
+            }
+
+            if code in short:
+                return short[code]
+            return f"\\u{code:04X}"
+
+        # C0 controls + DEL
+        return re.sub(r"[\x00-\x1F\x7F]", repl, nq)
 
     def canonize(self, graph: Dataset) -> str:
 
@@ -299,8 +291,6 @@ class HashNDegreeQuads:
             self.chosen_issuer = issuer_copy
 
     def hash(self, id: str, default_issuer: IdentifierIssuer) -> NDegreeResult:
-
-        # TODO use ref to issuer
 
         hash_to_related: SortedDict = self.create_hash_to_related(id, default_issuer)
 

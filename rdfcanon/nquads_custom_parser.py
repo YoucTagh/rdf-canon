@@ -26,7 +26,6 @@ class IdMap(MutableMapping[str, BNode]):
 
 def parse_nquads_preserve_bnodes(file_path):
 
-    # Remove automatic dateTime parsing
     for dt in (
         XSD.dateTime,
         XSD.boolean,
