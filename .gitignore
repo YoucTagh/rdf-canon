@@ -8,3 +8,5 @@ __pycache__/
 
 test/manifest1.jsonld
 test/rdfc10_test
+
+youctagh-rdfcanon-earl.ttl
