@@ -1,5 +1,9 @@
 # RDF Canonicalisation
 
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/rdfcanon)](https://pypi.org/project/rdfcanon/)
+[![Downloads](https://img.shields.io/pypi/dm/rdfcanon)](https://pypi.org/project/rdfcanon/)
+
 A Python library for **RDF canonicalisation** based on the [W3C RDF Canonicalisation specification](https://www.w3.org/TR/rdf-canon/).
 This library allows you to deterministically canonicalise RDF datasets, making it easier to compare, sign, or hash RDF graphs.
 
