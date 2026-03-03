@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="rdfcanon",
-    version="0.1.0",
+    version="1.0.0",
     packages=find_packages(),
     install_requires=[
         "rdflib==7.5.0",
@@ -13,5 +13,16 @@ setup(
     ],
     long_description=long_description,
     long_description_content_type="text/markdown",
-    author="YoucTagh",
+    author="Yousouf Taghzouti",
+    author_email="yousouf.taghzouti@gmail.com",
+    url="https://github.com/YoucTagh/rdf-canon/",
+    download_url="https://pypi.org/project/rdfcanon/",
+    license="MIT",
+    license_files=["LICENSE"],
+    keywords=[
+        "semantics",
+        "canonicalisation",
+        "RDF",
+    ],
+    python_requires=">=3.12",
 )
